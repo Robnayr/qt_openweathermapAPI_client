@@ -20,5 +20,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    const QString rightLogin;
+    const QString rightPassword;
 };
 #endif // MAINWINDOW_H

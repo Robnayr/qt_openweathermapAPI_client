@@ -24,6 +24,8 @@ private slots:
 private:
     Ui::SecondWindow *ui;
     const QString keyString;
+    const QString infoFileDirectoryName;
+    const QString fileName;
 };
 
 #endif // SECONDWINDOW_H

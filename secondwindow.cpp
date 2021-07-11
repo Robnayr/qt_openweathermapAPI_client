@@ -6,11 +6,18 @@
 #include "QMessageBox"
 #include <QFile>
 #include <QDir>
+#include <chrono>
+#include <iostream>
+#include <QDateTime>
+#include <QTimeZone>
 
 SecondWindow::SecondWindow(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::SecondWindow),
-    keyString("0866f3bb9b5e7b6aa8019c730fc864c1") {
+    keyString("0866f3bb9b5e7b6aa8019c730fc864c1"),
+    infoFileDirectoryName("resources\\"),
+    fileName("data.txt")
+{
     ui->setupUi(this);
 }
 
@@ -25,50 +32,49 @@ void SecondWindow::replyFinished(QNetworkReply *reply) {
 
   qDebug() << strReply;
   if(jsonObject["cod"] == 200) {
-      double temperatureCelsius = jsonObject["main"].toObject()["temp"].toDouble()-273.15;
-      double temperatureFahrenheit = (temperatureCelsius*9/5)+32;
+      qDebug() << jsonObject["dt"];
+      this->ui->dateLabel->setText(QDateTime::fromSecsSinceEpoch(jsonObject["dt"].toInt(),
+                                   QTimeZone::systemTimeZone()).toString("dddd d MMMM yyyy hh:mm:ss"));
       double temperatureKelvin = jsonObject["main"].toObject()["temp"].toDouble();
-      QString celsius = QString::number(temperatureCelsius)+" °C";
-      QString kelvin = QString::number(temperatureKelvin)+" °K";
-      QString fahrenheit = QString::number(temperatureFahrenheit)+" °F";
-      this->ui->celsiusLabel->setText(celsius);
-      this->ui->fahrenheitLabel->setText(fahrenheit);
-      this->ui->kelvinLabel->setText(kelvin);
+      double temperatureCelsius = temperatureKelvin-273.15;
+      double temperatureFahrenheit = (temperatureCelsius*9/5)+32;  
+      QString celsiusTemperatureName = QString::number(temperatureCelsius)+" °C";
+      QString kelvintemperatureName = QString::number(temperatureKelvin)+" °K";
+      QString fahrenheitTemperatureName = QString::number(temperatureFahrenheit)+" °F";
+      this->ui->celsiusLabel->setText(celsiusTemperatureName);
+      this->ui->fahrenheitLabel->setText(fahrenheitTemperatureName);
+      this->ui->kelvinLabel->setText(kelvintemperatureName);
 
-      QFile file("resources\\data.txt");
+      QFile file(infoFileDirectoryName+fileName);
       if (file.exists()) {
            if(file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append)) {
                 QTextStream out(&file);
                 out << jsonResponse.toJson();
            }
-           else
-               qDebug() << "file not open";
       } else {
-          QString path("resources\\");
-          QDir dir(path) ;
+          QString path(infoFileDirectoryName);
+          QDir dir(path);
 
           if (!dir.exists(path))
               dir.mkpath(path);
 
-          QFile file(path + "data.txt");
+          QFile file(path + fileName);
           file.open(QIODevice::WriteOnly);
           file.write(jsonResponse.toJson());
       }
-
       file.close();
   }
   else {
-      this->ui->celsiusLabel->setText("");
-      this->ui->fahrenheitLabel->setText("");
-      this->ui->kelvinLabel->setText("");
-      QMessageBox::warning(this,"Error","Input right query");
+      this->ui->celsiusLabel->clear();
+      this->ui->fahrenheitLabel->clear();
+      this->ui->kelvinLabel->clear();
+      QMessageBox::warning(this , "Error" , "Input right query");
   }
 }
 
 void SecondWindow::on_enterButton_clicked() {
     QNetworkAccessManager *manager = new QNetworkAccessManager();
     QNetworkRequest request;
-
     QSslConfiguration config = QSslConfiguration::defaultConfiguration();
     config.setProtocol(QSsl::TlsV1_2);
     request.setSslConfiguration(config);
@@ -81,6 +87,12 @@ void SecondWindow::on_enterButton_clicked() {
 }
 
 void SecondWindow::on_clearButton_clicked() {
+    if(this->ui->celsiusLabel->text() == "") {
+        if(this->ui->cityLabel->text() == "") {
+            QMessageBox::warning(this , "!" , "Nothing to clear!");
+        }
+        this->ui->cityLabel->clear();
+    }
     this->ui->celsiusLabel->clear();
     this->ui->fahrenheitLabel->clear();
     this->ui->kelvinLabel->clear();
